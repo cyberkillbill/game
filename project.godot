@@ -1,0 +1,70 @@
+; Engine configuration file.
+; Porto Santiago — "Money, Power, Respect" (BR / Android)
+;
+; Godot 4.3, mobile portrait, single-player turn-based strategy.
+; Edit only when intentional — many fields are written by the editor.
+
+config_version=5
+
+[application]
+
+config/name="Porto Santiago"
+config/description="Drama criminal estratégico turn-based em uma metrópole brasileira fictícia."
+config/version="0.1.0"
+run/main_scene="res://scenes/main_menu/MainMenu.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+config/icon="res://icon.svg"
+config/quit_on_go_back=false
+
+[autoload]
+
+GameManager="*res://scripts/autoload/GameManager.gd"
+SaveManager="*res://scripts/autoload/SaveManager.gd"
+EconomyManager="*res://scripts/autoload/EconomyManager.gd"
+HeatManager="*res://scripts/autoload/HeatManager.gd"
+FactionManager="*res://scripts/autoload/FactionManager.gd"
+AudioManager="*res://scripts/autoload/AudioManager.gd"
+
+[display]
+
+window/size/viewport_width=1080
+window/size/viewport_height=2400
+window/size/mode=0
+window/size/resizable=true
+window/handheld/orientation=1
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/dpi/allow_hidpi=true
+window/vsync/vsync_mode=1
+
+[gui]
+
+theme/custom_font=""
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+pointing/emulate_mouse_from_touch=false
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://translations/pt_br.csv")
+locale/fallback="pt_BR"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0.0392157, 0.0392157, 0.0588235, 1)
+2d/snap/snap_2d_transforms_to_pixel=true
+
+[file_customization]
+
+folder_colors={
+"res://assets/": "blue",
+"res://resources/": "purple",
+"res://scenes/": "yellow",
+"res://scripts/": "green",
+"res://translations/": "teal"
+}
