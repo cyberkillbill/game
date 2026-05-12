@@ -159,6 +159,13 @@ jobs:
           # .gdignore prevents Godot from trying to import Gradle/Java files
           touch android/build/.gdignore
 
+          # version.txt is REQUIRED — the exporter refuses to build without it
+          # ("no version info for it exists"). Content must match the engine's
+          # full version string exactly (e.g. "4.3.stable.official.77dcf97d8").
+          $GODOT_BIN --version | tr -d '\n' > android/build/.install
+          mv android/build/.install android/build/version.txt
+          echo "version.txt contents: '$(cat android/build/version.txt)'"
+
           echo "--- android/ tree ---"
           ls -la android/
           echo "--- android/build/ tree (top level) ---"
