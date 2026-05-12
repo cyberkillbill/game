@@ -45,6 +45,8 @@ jobs:
           cmdline-tools-version: "11076708"
 
       - name: Install Android SDK packages
+        # Prebuilt-template export only needs platform-tools + build-tools
+        # (for apksigner). NDK/cmake are gradle-only dependencies.
         run: |
           set -e
           yes | sdkmanager --licenses >/dev/null || true
@@ -52,9 +54,7 @@ jobs:
             "platform-tools" \
             "platforms;android-34" \
             "build-tools;34.0.0" \
-            "cmdline-tools;latest" \
-            "ndk;23.2.8568313" \
-            "cmake;3.22.1"
+            "cmdline-tools;latest"
 
       - name: Cache Godot binary and templates
         id: cache-godot
@@ -132,44 +132,6 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           $GODOT_BIN --headless --import 2>&1 | tail -50 || true
-
-      - name: Install Android build template (manual extraction)
-        run: |
-          set -e
-          cd $GITHUB_WORKSPACE
-
-          # The Godot CLI flag --install-android-build-template hangs forever
-          # in headless mode on CI (waits for editor context). Instead, we
-          # extract android_source.zip directly from the export templates
-          # into android/build/ — this is exactly what the CLI does under
-          # the hood, minus the hang.
-          TPL_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_STATUS}"
-          SOURCE_ZIP="$TPL_DIR/android_source.zip"
-
-          if [ ! -f "$SOURCE_ZIP" ]; then
-            echo "::error::android_source.zip not found at $SOURCE_ZIP"
-            echo "Available template files:"
-            ls -la "$TPL_DIR" || true
-            exit 1
-          fi
-
-          mkdir -p android/build
-          unzip -oq "$SOURCE_ZIP" -d android/build/
-
-          # .gdignore prevents Godot from trying to import Gradle/Java files
-          touch android/build/.gdignore
-
-          # version.txt is REQUIRED — the exporter refuses to build without it
-          # ("no version info for it exists"). Content must match the engine's
-          # full version string exactly (e.g. "4.3.stable.official.77dcf97d8").
-          $GODOT_BIN --version | tr -d '\n' > android/build/.install
-          mv android/build/.install android/build/version.txt
-          echo "version.txt contents: '$(cat android/build/version.txt)'"
-
-          echo "--- android/ tree ---"
-          ls -la android/
-          echo "--- android/build/ tree (top level) ---"
-          ls -la android/build/ | head -30
 
       - name: Export Android Debug APK
         run: |
