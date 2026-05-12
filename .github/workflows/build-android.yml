@@ -133,13 +133,36 @@ jobs:
           cd $GITHUB_WORKSPACE
           $GODOT_BIN --headless --import 2>&1 | tail -50 || true
 
-      - name: Install Android build template
+      - name: Install Android build template (manual extraction)
         run: |
+          set -e
           cd $GITHUB_WORKSPACE
-          $GODOT_BIN --headless --install-android-build-template 2>&1 | tail -30 || true
+
+          # The Godot CLI flag --install-android-build-template hangs forever
+          # in headless mode on CI (waits for editor context). Instead, we
+          # extract android_source.zip directly from the export templates
+          # into android/build/ — this is exactly what the CLI does under
+          # the hood, minus the hang.
+          TPL_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_STATUS}"
+          SOURCE_ZIP="$TPL_DIR/android_source.zip"
+
+          if [ ! -f "$SOURCE_ZIP" ]; then
+            echo "::error::android_source.zip not found at $SOURCE_ZIP"
+            echo "Available template files:"
+            ls -la "$TPL_DIR" || true
+            exit 1
+          fi
+
+          mkdir -p android/build
+          unzip -oq "$SOURCE_ZIP" -d android/build/
+
+          # .gdignore prevents Godot from trying to import Gradle/Java files
+          touch android/build/.gdignore
+
           echo "--- android/ tree ---"
-          ls -la android/ || true
-          ls -la android/build/ 2>/dev/null || echo "(no android/build yet)"
+          ls -la android/
+          echo "--- android/build/ tree (top level) ---"
+          ls -la android/build/ | head -30
 
       - name: Export Android Debug APK
         run: |
