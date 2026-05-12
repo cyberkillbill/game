@@ -1,0 +1,51 @@
+# --- Godot 4 ---
+.godot/
+.import/
+*.tmp
+*.translation
+export.cfg
+*.pyc
+
+# Imported asset cache
+**/*.import
+
+# Build artifacts
+build/
+*.apk
+*.aab
+*.idsig
+
+# Local-only export overrides (keep export_presets.cfg, ignore secrets)
+override.cfg
+
+# --- Android / Gradle ---
+android/build/
+android/.gradle/
+android/local.properties
+android/gradle.properties
+android/keystore.cfg
+android/*.keystore
+android/*.jks
+*.keystore
+*.jks
+
+# --- OS / Editor ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# --- Secrets / Cloud ---
+*.env
+*.env.local
+firebase-adminsdk-*.json
+google-services.json
+GoogleService-Info.plist
+
+# --- Logs ---
+*.log
+logs/
