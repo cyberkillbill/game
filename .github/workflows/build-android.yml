@@ -45,6 +45,8 @@ jobs:
           cmdline-tools-version: "11076708"
 
       - name: Install Android SDK packages
+        # Prebuilt-template export only needs platform-tools + build-tools
+        # (for apksigner). NDK/cmake are gradle-only dependencies.
         run: |
           set -e
           yes | sdkmanager --licenses >/dev/null || true
@@ -52,9 +54,7 @@ jobs:
             "platform-tools" \
             "platforms;android-34" \
             "build-tools;34.0.0" \
-            "cmdline-tools;latest" \
-            "ndk;23.2.8568313" \
-            "cmake;3.22.1"
+            "cmdline-tools;latest"
 
       - name: Cache Godot binary and templates
         id: cache-godot
@@ -108,18 +108,18 @@ jobs:
           set -e
           CFG_DIR="$HOME/.config/godot"
           mkdir -p "$CFG_DIR"
-          cat > "$CFG_DIR/editor_settings-4.tres" <<EOF
-[gd_resource type="EditorSettings" format=3]
-
-[resource]
-export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
-export/android/debug_keystore = "$HOME/.android/debug.keystore"
-export/android/debug_keystore_user = "androiddebugkey"
-export/android/debug_keystore_pass = "android"
-export/android/force_system_user = false
-export/android/shutdown_adb_on_exit = true
-export/android/use_wifi_for_remote_debug = false
-EOF
+          {
+            echo '[gd_resource type="EditorSettings" format=3]'
+            echo ''
+            echo '[resource]'
+            echo "export/android/android_sdk_path = \"$ANDROID_SDK_ROOT\""
+            echo "export/android/debug_keystore = \"$HOME/.android/debug.keystore\""
+            echo 'export/android/debug_keystore_user = "androiddebugkey"'
+            echo 'export/android/debug_keystore_pass = "android"'
+            echo 'export/android/force_system_user = false'
+            echo 'export/android/shutdown_adb_on_exit = true'
+            echo 'export/android/use_wifi_for_remote_debug = false'
+          } > "$CFG_DIR/editor_settings-4.tres"
           echo "Editor settings written:"
           cat "$CFG_DIR/editor_settings-4.tres"
 
@@ -132,14 +132,6 @@ EOF
         run: |
           cd $GITHUB_WORKSPACE
           $GODOT_BIN --headless --import 2>&1 | tail -50 || true
-
-      - name: Install Android build template
-        run: |
-          cd $GITHUB_WORKSPACE
-          $GODOT_BIN --headless --install-android-build-template 2>&1 | tail -30 || true
-          echo "--- android/ tree ---"
-          ls -la android/ || true
-          ls -la android/build/ 2>/dev/null || echo "(no android/build yet)"
 
       - name: Export Android Debug APK
         run: |
