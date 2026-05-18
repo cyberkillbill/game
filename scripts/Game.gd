@@ -63,6 +63,26 @@ const TILE_NAMES := [
 const RIVALS := ["BV", "CE", "FB", "SV"]
 const RIVAL_AGGRESSION := {"BV": 0.55, "CE": 0.35, "FB": 0.5, "SV": 0.65}
 
+# Tipos de produto: cada boca tem 1 afinidade. Margens e calor diferentes.
+# PO   = pó branco          → margem +80%, calor x2
+# ERVA = verde              → margem padrão, calor /2
+# COMP = comprimido sintético → margem +30%, calor x1
+const PRODUCT_INFO := {
+	"PO":   {"name": "Pó",         "color": Color("e7e7e7"), "income_mult": 1.8, "heat_mult": 2.0},
+	"ERVA": {"name": "Erva",       "color": Color("4ea64e"), "income_mult": 1.0, "heat_mult": 0.5},
+	"COMP": {"name": "Comprimido", "color": Color("e07a26"), "income_mult": 1.3, "heat_mult": 1.0},
+}
+
+# Recrutas com nomes ficcionais e bônus passivos (sem caricatura)
+const RECRUIT_POOL := [
+	{"nome": "Tigrão",   "bonus": "+2 ataque",       "key": "ATK"},
+	{"nome": "Doutor",   "bonus": "-1 calor/turno",  "key": "COOL"},
+	{"nome": "Cobrinha", "bonus": "+R$30/turno",     "key": "EARN"},
+	{"nome": "Magrão",   "bonus": "+1 tropa/turno",  "key": "TROOP"},
+	{"nome": "Velhinho", "bonus": "+5% lavagem",     "key": "WASH"},
+	{"nome": "Mosca",    "bonus": "-1 perda no atq", "key": "DEF"},
+]
+
 # ----- Estado --------------------------------------------------------------
 var player_name: String = "Você"
 var cash: int = 0
@@ -109,13 +129,16 @@ func _init_territories() -> void:
 		elif i == player_start:
 			owner = "PLAYER"
 			def = 2
+		var product_keys := PRODUCT_INFO.keys()
+		var product: String = product_keys[randi() % product_keys.size()]
 		var t := {
 			"id": i,
 			"name": TILE_NAMES[i],
 			"owner": owner,
 			"soldiers": def,
-			"income": 70 + randi() % 60,    # R$ por venda
-			"risk": 4 + randi() % 6,        # +calor por venda
+			"base_income": 70 + randi() % 60,   # base R$ por venda
+			"base_risk": 4 + randi() % 6,       # base calor por venda
+			"product": product,
 		}
 		territories.append(t)
 
@@ -151,6 +174,17 @@ func is_adjacent_to_player(idx: int) -> bool:
 
 
 # ----- Ações do jogador ----------------------------------------------------
+func tile_income(t: Dictionary) -> int:
+	var info: Dictionary = PRODUCT_INFO.get(str(t.get("product", "ERVA")), PRODUCT_INFO["ERVA"])
+	return int(int(t.get("base_income", 80)) * float(info.income_mult))
+
+
+func tile_risk(t: Dictionary) -> int:
+	var info: Dictionary = PRODUCT_INFO.get(str(t.get("product", "ERVA")), PRODUCT_INFO["ERVA"])
+	var r := int(int(t.get("base_risk", 6)) * float(info.heat_mult))
+	return max(1, r)
+
+
 func sell_at(territory_id: int) -> bool:
 	if finished: return false
 	if territory_id < 0 or territory_id >= N_TILES: return false
@@ -158,9 +192,12 @@ func sell_at(territory_id: int) -> bool:
 	if t.owner != "PLAYER":
 		_log("Vc não controla " + t.name + ".", "danger")
 		return false
-	cash += t.income
-	heat = clampi(heat + t.risk, 0, HEAT_CAP)
-	_log("Vendeu em " + t.name + ": +R$" + str(t.income) + " · +" + str(t.risk) + " calor", "gold")
+	var gain := tile_income(t)
+	var r := tile_risk(t)
+	cash += gain
+	heat = clampi(heat + r, 0, HEAT_CAP)
+	var pname: String = str(PRODUCT_INFO.get(str(t.product), {}).get("name", "produto"))
+	_log("Vendeu " + pname + " em " + t.name + ": +R$" + str(gain) + " · +" + str(r) + " calor", "gold")
 	state_changed.emit()
 	_check_loss()
 	return true
@@ -245,8 +282,8 @@ func end_turn() -> void:
 	var passive_heat := 0
 	for t in territories:
 		if t.owner == "PLAYER":
-			passive_income += int(t.income * 0.4)
-			passive_heat += int(t.risk * 0.4)
+			passive_income += int(tile_income(t) * 0.35)
+			passive_heat += int(tile_risk(t) * 0.35)
 	cash += passive_income
 	heat = clampi(heat + passive_heat, 0, HEAT_CAP)
 	if passive_income > 0:
