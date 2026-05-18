@@ -17,12 +17,30 @@ var _sell_btn: Button
 
 func _ready() -> void:
 	print("[GAME] _ready iniciado")
+	# Splash de fallback: se _build crashar antes de terminar, ainda mostra algo.
+	var fallback := _make_fallback_label("Carregando tela do jogo...")
+	add_child(fallback)
 	_build()
 	Game.state_changed.connect(_refresh)
 	Game.log_event.connect(func(_a, _b): _refresh())
 	Game.game_finished.connect(_on_game_finished)
 	_refresh()
+	# Build OK: remove o fallback
+	fallback.queue_free()
 	print("[GAME] _ready terminado")
+
+
+func _make_fallback_label(text: String) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 28)
+	l.add_theme_color_override("font_color", Color.WHITE)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.anchor_right = 1
+	l.anchor_bottom = 1
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
 
 
 func _build() -> void:

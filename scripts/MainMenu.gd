@@ -108,27 +108,44 @@ func _big_button(text: String, bg: Color) -> Button:
 
 
 func _on_new_game() -> void:
-	print("[MENU] NOVO JOGO pressed — iniciando")
-	_status_label.text = "Carregando jogo..."
-	# Damos 1 frame pra UI atualizar antes de trocar de cena.
-	# Se a Label aparecer, sabemos que clique funcionou.
+	print("[MENU] NOVO JOGO pressed")
+	_status_label.text = "Carregando..."
 	await get_tree().process_frame
 	Game.new_game("Você")
-	var err := get_tree().change_scene_to_file(GAME_SCENE)
-	if err != OK:
-		_status_label.text = "ERRO: scene change falhou (%d)" % err
-		_status_label.add_theme_color_override("font_color", Color(1, 0.3, 0.3))
-		push_error("change_scene_to_file falhou: %d" % err)
+	_load_game_scene()
 
 
 func _on_continue() -> void:
 	print("[MENU] CONTINUAR pressed")
 	_status_label.text = "Carregando save..."
 	await get_tree().process_frame
-	if Game.load_game():
-		get_tree().change_scene_to_file(GAME_SCENE)
-	else:
-		_status_label.text = "ERRO: falha ao carregar save"
+	if not Game.load_game():
+		_show_error("Falha ao carregar save.")
+		return
+	_load_game_scene()
+
+
+func _load_game_scene() -> void:
+	# Carga explícita em vez de change_scene_to_file: se a cena tiver erro
+	# de script/import, load() retorna null e mostramos a falha na tela
+	# em vez de trocar pra cena vazia (que ficaria preta ou travada).
+	var res: Resource = load(GAME_SCENE)
+	if res == null:
+		_show_error("Falha ao carregar GameScreen.tscn (load null).")
+		return
+	var packed: PackedScene = res as PackedScene
+	if packed == null:
+		_show_error("Recurso carregado não é uma cena.")
+		return
+	var err := get_tree().change_scene_to_packed(packed)
+	if err != OK:
+		_show_error("change_scene_to_packed falhou (cod %d)." % err)
+
+
+func _show_error(msg: String) -> void:
+	_status_label.text = "ERRO: " + msg
+	_status_label.add_theme_color_override("font_color", Color(1, 0.35, 0.35))
+	push_error(msg)
 
 
 func _on_quit() -> void:
