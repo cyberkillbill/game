@@ -1,15 +1,14 @@
-name: Build Android APK
+name: Build Android (Unity)
 
-# Build automático do APK debug do Porto Santiago.
+# Build automatico do APK Android com Unity via game-ci/unity-builder.
 #
-# - Roda a cada push ou disparo manual ("Run workflow" na aba Actions).
-# - Baixa Godot 4.3 stable + templates de export.
-# - Instala Android SDK + NDK + build-tools 34.
-# - Gera keystore de debug e configura editor_settings.
-# - Faz duas passadas de --import (cache de class_name fica completo).
-# - Instala o template de build Android (cria pasta android/build/).
-# - Exporta o APK debug.
-# - Sobe o APK como artifact com retenção de 30 dias.
+# REQUER 3 secrets no repo (Settings → Secrets and variables → Actions):
+#   UNITY_LICENSE   — conteúdo do arquivo .ulf (instruções no README)
+#   UNITY_EMAIL     — email da conta Unity
+#   UNITY_PASSWORD  — senha da conta Unity
+#
+# Primeiro run vai FALHAR se os secrets não estiverem configurados —
+# é esperado. Siga o README.md pra ativar a licença antes do primeiro build.
 
 on:
   push:
@@ -20,151 +19,81 @@ on:
   workflow_dispatch:
 
 env:
-  GODOT_VERSION: "4.3"
-  GODOT_STATUS: "stable"
+  UNITY_VERSION: "2022.3.40f1"
 
 jobs:
-  android:
-    name: Export Android APK
+  build:
+    name: Build Android APK
     runs-on: ubuntu-22.04
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
         with:
-          distribution: "temurin"
-          java-version: "17"
+          lfs: true
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: "11076708"
-
-      - name: Install Android SDK packages
-        # Prebuilt-template export only needs platform-tools + build-tools
-        # (for apksigner). NDK/cmake are gradle-only dependencies.
+      - name: Free disk space
+        # Unity-builder precisa de muito espaço em disco. ubuntu-22.04
+        # vem com várias toolchains que não usamos.
         run: |
-          set -e
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager \
-            "platform-tools" \
-            "platforms;android-34" \
-            "build-tools;34.0.0" \
-            "cmdline-tools;latest"
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk/ndk \
+                       /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          df -h
 
-      - name: Cache Godot binary and templates
-        id: cache-godot
+      - name: Cache Unity Library
         uses: actions/cache@v4
         with:
-          path: |
-            ~/godot-bin
-            ~/.local/share/godot
-          key: godot-${{ env.GODOT_VERSION }}-${{ env.GODOT_STATUS }}-v2
+          path: Library
+          key: Library-Android-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-Android-
+            Library-
 
-      - name: Install Godot ${{ env.GODOT_VERSION }}-${{ env.GODOT_STATUS }}
-        if: steps.cache-godot.outputs.cache-hit != 'true'
+      - name: Build Android APK via Unity
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          unityVersion: ${{ env.UNITY_VERSION }}
+          targetPlatform: Android
+          androidExportType: androidPackage
+          allowDirtyBuild: true
+
+      - name: List build output
+        if: always()
         run: |
-          set -e
-          mkdir -p ~/godot-bin && cd ~/godot-bin
-          GODOT_URL="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip"
-          TEMPLATES_URL="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_export_templates.tpz"
+          echo "--- build/ ---"
+          ls -la build/ || true
+          echo "--- build/Android/ ---"
+          ls -la build/Android/ || true
 
-          echo "Downloading Godot from $GODOT_URL"
-          curl -L --fail -o godot.zip "$GODOT_URL"
-          unzip -o godot.zip
-          mv "Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" godot
-          chmod +x godot
-
-          echo "Downloading export templates from $TEMPLATES_URL"
-          curl -L --fail -o templates.tpz "$TEMPLATES_URL"
-          TPL_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_STATUS}"
-          mkdir -p "$TPL_DIR"
-          unzip -o templates.tpz -d /tmp/godot-templates
-          mv /tmp/godot-templates/templates/* "$TPL_DIR/"
-          rm -rf /tmp/godot-templates templates.tpz godot.zip
-
-      - name: Expose Godot on PATH
-        run: |
-          echo "$HOME/godot-bin" >> $GITHUB_PATH
-          echo "GODOT_BIN=$HOME/godot-bin/godot" >> $GITHUB_ENV
-
-      - name: Generate debug keystore
-        run: |
-          set -e
-          mkdir -p ~/.android
-          if [ ! -f ~/.android/debug.keystore ]; then
-            keytool -genkey -v -keystore ~/.android/debug.keystore \
-              -storepass android -alias androiddebugkey -keypass android \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
-          fi
-
-      - name: Configure Godot editor settings (Android paths + keystore)
-        run: |
-          set -e
-          CFG_DIR="$HOME/.config/godot"
-          mkdir -p "$CFG_DIR"
-          {
-            echo '[gd_resource type="EditorSettings" format=3]'
-            echo ''
-            echo '[resource]'
-            echo "export/android/android_sdk_path = \"$ANDROID_SDK_ROOT\""
-            echo "export/android/debug_keystore = \"$HOME/.android/debug.keystore\""
-            echo 'export/android/debug_keystore_user = "androiddebugkey"'
-            echo 'export/android/debug_keystore_pass = "android"'
-            echo 'export/android/force_system_user = false'
-            echo 'export/android/shutdown_adb_on_exit = true'
-            echo 'export/android/use_wifi_for_remote_debug = false'
-          } > "$CFG_DIR/editor_settings-4.tres"
-          echo "Editor settings written:"
-          cat "$CFG_DIR/editor_settings-4.tres"
-
-      - name: First import pass (build class cache)
-        run: |
-          cd $GITHUB_WORKSPACE
-          $GODOT_BIN --headless --import 2>&1 | tail -50 || true
-
-      - name: Second import pass (resolve cross-script references)
-        run: |
-          cd $GITHUB_WORKSPACE
-          $GODOT_BIN --headless --import 2>&1 | tail -50 || true
-
-      - name: Export Android Debug APK
-        run: |
-          set -e
-          cd $GITHUB_WORKSPACE
-          mkdir -p build
-          $GODOT_BIN --headless --verbose --export-debug "Android Debug" build/porto_santiago-debug.apk
-          echo "--- build/ tree ---"
-          ls -la build/
-
-      - name: Upload APK
+      - name: Upload APK artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: porto-santiago-android-debug
-          path: build/porto_santiago-debug.apk
+          name: porto-santiago-android-apk
+          path: build/Android/
           if-no-files-found: error
           retention-days: 30
 
       - name: Job summary
         if: always()
         run: |
-          echo "## Porto Santiago — Android Debug Build" >> $GITHUB_STEP_SUMMARY
+          echo "## Porto Santiago — Android Build (Unity)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f build/porto_santiago-debug.apk ]; then
-            SIZE=$(du -h build/porto_santiago-debug.apk | cut -f1)
-            echo "✅ APK built successfully ($SIZE)" >> $GITHUB_STEP_SUMMARY
+          if ls build/Android/*.apk >/dev/null 2>&1; then
+            APK=$(ls build/Android/*.apk | head -1)
+            SIZE=$(du -h "$APK" | cut -f1)
+            echo "✅ APK gerado: \`$APK\` ($SIZE)" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Pra baixar e instalar:**" >> $GITHUB_STEP_SUMMARY
-            echo "1. Role pra cima nesta página, na seção *Artifacts*" >> $GITHUB_STEP_SUMMARY
-            echo "2. Clique em \`porto-santiago-android-debug\` pra baixar o zip" >> $GITHUB_STEP_SUMMARY
-            echo "3. Extraia o .apk no celular" >> $GITHUB_STEP_SUMMARY
-            echo "4. Permita \"Instalar de fontes desconhecidas\" pro app que você usou pra abrir" >> $GITHUB_STEP_SUMMARY
-            echo "5. Toque no APK e instale" >> $GITHUB_STEP_SUMMARY
+            echo "Baixe em **Artifacts → porto-santiago-android-apk**." >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Build failed — confira os logs acima." >> $GITHUB_STEP_SUMMARY
+            echo "❌ Build falhou. Veja logs do step **Build Android APK via Unity**." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Erros comuns:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Licença Unity não configurada: confira README.md, seção 'Ativar licença Unity'" >> $GITHUB_STEP_SUMMARY
+            echo "- ProjectSettings/ ausente: você inicializou o projeto em Unity Hub localmente?" >> $GITHUB_STEP_SUMMARY
           fi

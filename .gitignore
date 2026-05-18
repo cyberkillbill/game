@@ -1,31 +1,59 @@
-# --- Godot 4 ---
-.godot/
-.import/
-*.tmp
-*.translation
-export.cfg
-*.pyc
+# --- Unity ---
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
 
-# Imported asset cache
-**/*.import
+# Asset meta files are tracked, unless the asset itself is ignored.
+!/[Aa]ssets/**/*.meta
+
+# Visual Studio / Rider generated
+.vs/
+.vsconfig
+.idea/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.tmp
+
+# Unity crash reports
+sysinfo.txt
 
 # Build artifacts
-build/
 *.apk
 *.aab
+*.unitypackage
+*.app
 *.idsig
 
-# Local-only export overrides (keep export_presets.cfg, ignore secrets)
-override.cfg
+# Crashlytics generated file
+crashlytics-build.properties
+
+# Packed Addressables
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+
+# Temporary auto-generated Android assets
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
 
 # --- Android / Gradle ---
-android/build/
-android/.gradle/
-android/local.properties
-android/gradle.properties
-android/keystore.cfg
-android/*.keystore
-android/*.jks
+.gradle/
+local.properties
 *.keystore
 *.jks
 
@@ -33,7 +61,6 @@ android/*.jks
 .DS_Store
 Thumbs.db
 desktop.ini
-.idea/
 .vscode/
 *.swp
 *.swo
@@ -48,4 +75,3 @@ GoogleService-Info.plist
 
 # --- Logs ---
 *.log
-logs/

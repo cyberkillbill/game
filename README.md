@@ -1,163 +1,226 @@
-# Porto Santiago — *Money, Power, Respect* (BR)
+# Porto Santiago
 
-Drama criminal estratégico turn-based para Android, ambientado em uma metrópole brasileira **fictícia** chamada **Porto Santiago**. Inspirado em *Scarface: Money, Power, Respect* (PSP, 2006) com vibe *GTA / Mafia / Civilization*.
+Drama criminal estratégico turn-based mobile, ambientado em uma metrópole brasileira **ficcional**. Você sobe da quebrada controlando bocas, recrutando tropa, lavando grana e dominando território.
 
-> ⚠️ **Tudo é ficção.** Nenhuma pessoa, organização, instituição, marca, time ou arma real é referenciada. Estética brasileira tratada com respeito — sem caricaturar comunidades reais.
+> ⚠️ **100% ficção.** Nenhuma pessoa, comunidade, organização ou marca reais são referenciadas. Estética brasileira tratada com respeito, sem caricatura.
 
----
-
-## Como baixar o APK no celular (sem PC)
-
-1. Abra este repositório no celular pelo navegador.
-2. Toque na aba **Actions**.
-3. Toque no workflow run mais recente que aparece com ✅ verde (título *"Build Android APK"*).
-4. Role pra baixo até **Artifacts** → toque em `porto-santiago-android-debug`.
-5. O GitHub vai baixar um `.zip` — extraia (qualquer file manager faz isso).
-6. Toque no `.apk` extraído.
-7. Permita "Instalar de fontes desconhecidas" pro app que abriu o APK.
-8. Instale e jogue.
-
-**Dica:** o primeiro build pode demorar ~15 min porque o cache do Godot está vazio. Builds seguintes são rápidos (~5 min) porque o Godot fica em cache.
-
-Se o build falhar, o log fica visível na mesma página — me mande o erro que ajusto.
+**Stack:** Unity 2022.3.40f1 · C# · Android · Build via GitHub Actions (`game-ci/unity-builder`)
 
 ---
 
-## O jogo
+## ⚡ Setup rápido (você precisa fazer 1x)
 
-Você é um patrão recém-chegado em Porto Santiago, controlando o **Bairro do Porto** (vida noturna). Sua missão: expandir o império conquistando os outros 11 distritos das mãos de 5 facções rivais fictícias, sem que o Calor te derrube.
+Pra esse projeto fazer o primeiro APK sair verde no GitHub Actions, você precisa de **3 coisas**:
 
-### Loop de uma semana (turno)
+1. ✅ Inicializar a estrutura Unity localmente (Unity Hub na sua máquina)
+2. ✅ Configurar settings de Android pra build mobile
+3. ✅ Ativar uma licença Unity Personal e adicionar como secret no GitHub
 
-Toda vez que você toca em **"Encerrar Semana →"**, 5 fases rodam em sequência:
-
-1. **Econômica** — coleta de renda dos seus territórios
-2. **Recrutamento** — lealdade alta atrai recruta, lealdade baixa causa deserção
-3. **Diplomática** — facções rivais oscilam relação
-4. **Tática** — facções hostis podem atacar seus territórios
-5. **Manutenção** — paga folha de soldados e operações; Calor decai um pouco
-
-### Recursos
-
-| Recurso        | O que é                                                       |
-|----------------|---------------------------------------------------------------|
-| **Capital**    | Dinheiro sujo da economia paralela. Gasta em quase tudo.      |
-| **Limpo**      | Capital lavado, usável publicamente. Não rola Calor extra.    |
-| **Influência** | Reputação na rua. Sobe com vitórias, alianças, ameaças.       |
-| **Calor**      | Atenção das autoridades fictícias (GM → ETE → FFI).           |
-| **Lealdade**   | Moral da tropa. Baixa = deserções.                            |
-| **Tropa**      | Soldados disponíveis pra combate e defesa.                    |
-
-### Telas
-
-- **Menu Principal** — Novo Jogo, Continuar, Sobre.
-- **Editor de Personagem** — apelido, tom de pele, cabelo, barba, **camisa de time fictício** (8 times inventados com brasão estilizado), tatuagem.
-- **Mapa Estratégico** — 12 distritos coloridos pela facção dominante. Toque pra abrir painel com renda, calor, ações. HUD top com 6 stats. Diário de eventos.
-- **Diplomacia** — 5 facções com relação, barra de afinidade, ações: Trégua / Presente / Aliança / Ameaça.
-- **Gestão** — overview do império, lavagem de capital (taxa 18%), suborno (reduz Calor), recrutamento, lista de territórios.
-- **Combate Tático** — grid 8×8 estilo XCOM lite. Mova suas unidades (♟), ataque inimigos (✪) dentro do alcance. Vitória = território conquistado.
+Tempo total: **~45 min na sua primeira vez**. Depois disso é só pushar código.
 
 ---
 
-## Stack técnica
+## Passo 1 — Inicializar o projeto Unity localmente
 
-- **Engine:** Godot 4.3 (GDScript)
-- **Target:** Android API 26+ (portrait obrigatório, 1080×2400 base)
-- **Idioma:** pt-BR (CSV de i18n em `translations/pt_br.csv`)
-- **Persistência:** local em `user://save.json` (encriptado quando suportado), com stub pra cloud sync
-- **Estilo visual:** procedural stylized (cards arredondados, paleta dark premium, sem dependência de assets externos)
+### 1.1 Instala Unity Hub
+- Baixa em https://unity.com/download (gratuito, Personal Edition)
+- Cria conta Unity ID (gratuita)
 
-### Paleta
+### 1.2 Instala Unity 2022.3.40f1 + Android module
+- Abre Unity Hub → aba **Installs** → **Install Editor**
+- Escolhe versão **2022.3.40f1** (LTS — a mesma usada pelo workflow CI)
+- Em "Add modules", marca **Android Build Support** com seus 3 sub-itens:
+  - Android SDK & NDK Tools
+  - OpenJDK
+  - Android SDK Platform-Tools
 
-```
-bg-base       #0a0a0f      accent-primary  #dc2626 (poder)
-bg-surface    #13131a      accent-gold     #fbbf24 (dinheiro)
-bg-elevated   #1c1c26      accent-blue     #3b82f6 (info)
-text-primary  #f5f5f7      accent-danger   #ef4444 (calor)
-text-muted    #71717a      accent-success  #10b981 (ganho)
+### 1.3 Abre este repositório como projeto Unity
+Clone o repo na sua máquina:
+```bash
+git clone https://github.com/cyberkillbill/game.git porto-santiago
+cd porto-santiago
+git checkout claude/github-actions-apk-setup-bCX0y
 ```
 
+No Unity Hub:
+- Aba **Projects** → seta ao lado de **New project** → **Add project from disk**
+- Aponta pra pasta `porto-santiago`
+- Unity Hub vai perguntar "Esse projeto não tem ProjectSettings, criar novo?" → **Sim, criar**
+- Escolhe template **2D Core** (mais leve, suficiente pro nosso jogo)
+- Unity vai gerar `ProjectSettings/`, `Packages/`, `Library/` automaticamente
+
+Aí o Unity Editor abre. Pode demorar uns 5 min na primeira vez (importa tudo).
+
 ---
 
-## Estrutura
+## Passo 2 — Configurar settings de Android
+
+No Unity Editor:
+
+### 2.1 Trocar build target pra Android
+- Menu **File → Build Settings** (Ctrl+Shift+B)
+- Lista **Platform** → seleciona **Android** → clica **Switch Platform**
+- Espera 1-2 min (re-importa textures pra Android)
+
+### 2.2 Player Settings (identifier, nome, orientação)
+- Ainda em Build Settings → clica **Player Settings...** (canto inferior esquerdo)
+- Em **Player** (no menu da esquerda):
+  - **Company Name:** `cyberkillbill`
+  - **Product Name:** `Porto Santiago`
+  - **Version:** `0.4.0`
+- Em **Player → Resolution and Presentation:**
+  - **Default Orientation:** `Portrait`
+  - **Allowed Orientations for Auto Rotation:** só **Portrait**
+- Em **Player → Other Settings:**
+  - **Identification → Package Name:** `com.cyberkillbill.portosantiago`
+  - **Identification → Minimum API Level:** Android 8.0 (API 26)
+  - **Identification → Target API Level:** Android 14 (API 34)
+  - **Configuration → Scripting Backend:** `IL2CPP`
+  - **Configuration → Target Architectures:** marca **ARMv7** e **ARM64** (desmarca x86 se estiver)
+
+### 2.3 Adicionar a cena ao build
+- Volta pra **File → Build Settings**
+- Unity vai reclamar que não tem cena no build. Cria uma cena vazia:
+  - Menu **File → New Scene** → escolhe `Basic 2D` ou `Empty` → **Create**
+  - Menu **File → Save As** → salva em `Assets/Scenes/Main.unity`
+- Em Build Settings, clica **Add Open Scenes** → `Assets/Scenes/Main.unity` aparece na lista
+
+> 💡 A cena pode ficar vazia! `Assets/Scripts/GameBootstrap.cs` cria tudo procedural via `[RuntimeInitializeOnLoadMethod]`. Só precisa de uma cena listada pra Unity considerar válida.
+
+### 2.4 Teste rápido no Editor
+- Pressiona **▶ Play** no topo do Unity. Você deve ver o menu PORTO SANTIAGO.
+- Click em **NOVO JOGO** → vai pra tela do jogo.
+- Funcionando? Bora pro próximo passo. Não tá? Veja "Troubleshooting" no fim.
+
+### 2.5 Commit os arquivos gerados pelo Unity
+```bash
+git add ProjectSettings/ Packages/ Assets/Scenes/ ProjectVersion.txt
+git status   # confere o que vai entrar
+git commit -m "init Unity project structure (2022.3 LTS, Android)"
+git push origin claude/github-actions-apk-setup-bCX0y
+```
+
+Os arquivos gerados pelo Unity nesse passo são o que faltava pro CI funcionar.
+
+---
+
+## Passo 3 — Ativar licença Unity pra GitHub Actions
+
+`game-ci/unity-builder` precisa de uma licença válida pra rodar Unity em CI. Pra Personal Edition é gratuito mas tem que ativar 1x.
+
+### 3.1 Empurra um commit qualquer pra ver o erro de licença
+O primeiro run do workflow vai falhar com erro tipo "Unity license not activated". É esperado. Na verdade vai gerar um arquivo `Unity_v2022.x.alf` no log do workflow.
+
+### 3.2 Faz download do arquivo de ativação (`.alf`)
+- No workflow run que falhou, abre o step **Build Android APK via Unity** → procura por:
+  ```
+  Activation file written to ...alf
+  ```
+- O artifact `LicenseActivation` (ou similar) vai estar disponível pra download.
+- Baixa o `.alf` pra sua máquina.
+
+### 3.3 Converte `.alf` em `.ulf` no site da Unity
+- Vai em https://license.unity3d.com/manual
+- Login com sua conta Unity
+- Upload do arquivo `.alf` baixado
+- Escolhe **Personal license** (gratuita)
+- Baixa o arquivo `Unity_v2022.x.ulf` resultante
+
+### 3.4 Adiciona os 3 secrets no GitHub
+- Vai em `github.com/cyberkillbill/game/settings/secrets/actions`
+- Clica **New repository secret** pra cada um:
+
+| Nome | Valor |
+|---|---|
+| `UNITY_LICENSE` | Conteúdo INTEIRO do arquivo `.ulf` (abre num editor de texto e cola) |
+| `UNITY_EMAIL` | Email da sua conta Unity |
+| `UNITY_PASSWORD` | Senha da sua conta Unity |
+
+### 3.5 Empurra outro commit pra triggerar build com licença
+```bash
+git commit --allow-empty -m "trigger first licensed build"
+git push origin claude/github-actions-apk-setup-bCX0y
+```
+
+Agora o workflow deve rodar até o fim e produzir o APK em **Artifacts → porto-santiago-android-apk**.
+
+> 📖 Documentação oficial do flow de ativação: https://game.ci/docs/github/activation
+
+---
+
+## Como baixar o APK no celular (depois que o setup tá pronto)
+
+1. Abre `github.com/cyberkillbill/game/actions` no celular
+2. Run mais recente com ✅ verde → Artifacts → `porto-santiago-android-apk`
+3. Baixa o `.zip`, extrai, instala o `.apk`
+
+---
+
+## Arquitetura do código
 
 ```
-porto_santiago/
-├── project.godot              # config principal (mobile portrait, 6 autoloads)
-├── export_presets.cfg         # Android Debug + Release
-├── icon.svg                   # ícone do app
-├── .github/workflows/
-│   └── build-android.yml      # CI: builda APK a cada push, gratuito
-├── scenes/                    # .tscn de cada tela (esqueleto mínimo)
-│   ├── main_menu/MainMenu.tscn
-│   ├── map/StrategicMap.tscn
-│   ├── combat/TacticalCombat.tscn
-│   ├── diplomacy/DiplomacyScreen.tscn
-│   ├── management/ManagementScreen.tscn
-│   └── character/CharacterEditor.tscn
-├── scripts/
-│   ├── autoload/              # 6 singletons (estado global)
-│   ├── ui/                    # scripts de tela + componentes (PrimaryButton, Card, StatBadge, IconButton, ThemeBuilder)
-│   ├── entities/              # CombatUnit
-│   └── data/                  # Palette, Faction, Territory, Item, PlayerCharacter
-├── assets/                    # fonts/, ui/, audio/, characters/ (vazias por enquanto)
-├── translations/pt_br.csv
-└── android/                   # build template gerado pelo Godot (gitignored)
+Assets/
+  Scenes/
+    Main.unity              ← cena placeholder (criada por você no passo 2.3)
+  Scripts/
+    Game.cs                 ← singleton estático: estado + regras
+    GameBootstrap.cs        ← entry point [RuntimeInitializeOnLoadMethod]
+    UIController.cs         ← UI procedural (menu + jogo) via uGUI
+
+ProjectSettings/            ← gerado pelo Unity Hub
+Packages/                   ← gerado pelo Unity Hub
+
+.github/workflows/
+  build-android.yml         ← CI Android via game-ci/unity-builder
+
+DESIGN.md                   ← design doc completo (conceito, mecânicas, roadmap)
 ```
 
----
+**Padrão arquitetural:** UI 100% procedural. Sem prefabs hand-authored, sem dependência de scenes complexas. `GameBootstrap.cs` roda automaticamente antes de qualquer cena e cria Camera + EventSystem + UIController via código. Isso elimina toda classe de bug "asset não importa", "scene corrompida", "prefab quebrado" que afligiam a versão Godot.
 
-## Autoloads (singletons)
+**Padrão de estado:** Singleton estático `Game` com eventos C# (`StateChanged`, `LogEventEmitted`, `GameFinishedEvent`). UI escuta os eventos e atualiza visualmente. Sem MonoBehaviours espalhados.
 
-| Autoload         | Função                                                        |
-|------------------|---------------------------------------------------------------|
-| `GameManager`    | Estado global, controle de turnos e fases, navegação          |
-| `SaveManager`    | Save/load local encriptado + stub cloud                       |
-| `EconomyManager` | Capital, renda, manutenção, lavagem, suborno, recrutamento    |
-| `HeatManager`    | Nível de calor; raids da GM/ETE/FFI                           |
-| `FactionManager` | 5 facções fictícias + 12 territórios + diplomacia + combate   |
-| `AudioManager`   | Stub (sem assets de áudio ainda)                              |
+**Persistência:** save criptografado via `PlayerPrefs` + JSON. Suficiente pra single-player.
 
 ---
 
-## Facções fictícias
+## Troubleshooting
 
-| Sigla | Nome                            | Especialidade           | Personalidade   |
-|-------|---------------------------------|-------------------------|-----------------|
-| CDM   | Comando da Marina               | Contrabando portuário   | Agressiva       |
-| ADS   | Aliança da Serra                | Transporte e rotas      | Oportunista     |
-| SV    | Sindicato Vermelho              | Mercado paralelo        | Mercantil       |
-| NPS   | Núcleo do Porto Sul             | Indústria pesada        | Leal            |
-| IBE   | Irmandade do Bairro Esquecido   | Cultura de rua          | Isolacionista   |
+### "Não consigo abrir o projeto no Unity Hub — diz que falta ProjectSettings"
+Esperado. No Unity Hub, escolha **Add project from disk**, aponte pra pasta, e quando perguntar se quer criar projeto novo, **sim**. Unity gera tudo automático.
 
-Autoridades também fictícias: **Guarda Metropolitana** → **ETE** → **FFI** conforme o calor sobe.
+### "Compile error em Game.cs"
+Geralmente é versão Unity diferente. Confirma que está em **2022.3.40f1** no Unity Hub.
 
----
+### "Build no CI falha com 'License not activated'"
+Você não completou o Passo 3. Re-leia.
 
-## Rodar localmente (opcional, no PC)
+### "Build no CI falha com 'no scene in build'"
+Você não fez o Passo 2.3 (adicionar Main.unity ao build).
 
-1. Baixe **Godot 4.3 stable** em https://godotengine.org/download
-2. Abra o `project.godot`
-3. F5 (Play). Pra exportar APK localmente: `Project > Install Android Build Template` → `Project > Export > Android Debug`.
-
-Pra dropar fontes premium depois:
-1. Coloque `GeneralSans-Variable.ttf`, `Satoshi-Variable.ttf`, `JetBrainsMono-Regular.ttf` em `assets/fonts/`
-2. Edite `scripts/ui/ThemeBuilder.gd` constantes `FONT_UI_PATH`, `FONT_DISPLAY_PATH`, `FONT_MONO_PATH`
-3. Rebuild
+### "APK instala mas crasha ao abrir"
+Manda print do logcat pra mim. Provavelmente é settings de IL2CPP / arquitetura.
 
 ---
 
-## Roadmap pós-v0.1
+## Próximos passos (após primeiro build verde)
 
-- [ ] Som e música (assets a definir)
-- [ ] Cloud sync real via Firebase Firestore (stub já existe)
-- [ ] Eventos roteirizados (quests da história)
-- [ ] Sistema de inventário e loadout pré-combate
-- [ ] Multiplayer assíncrono via Nakama (v2)
-- [ ] Versão iOS (depois)
+Veja **DESIGN.md** pra roadmap completo (v0.4 → v1.0):
+
+- **v0.4** "A Cidade Inteira" — 3 zonas (Norte/Centro/Sul), recrutas com nomes, fitas/missões
+- **v0.5** "Reforma Visual" — brasões procedurais, transições, sons ambiente
+- **v0.6** "Carisma" — reputação por zona, vitórias alternativas
+- **v1.0** "Lançamento" — tutorial, polimento, build assinado release
 
 ---
 
-## Licença
+## Decisões técnicas
 
-A definir.
+**Por que Unity em vez de Godot?**
+A versão Godot deste projeto sofria de erros de script silenciosos: GDScript compila em runtime, falhas viraram tela preta no Android sem mensagem clara. C# do Unity falha no build do CI com erro explícito, o que cortou meia hora de debug-por-screenshot.
+
+**Por que `[RuntimeInitializeOnLoadMethod]` em vez de scene hand-authored?**
+Cenas Unity são YAML proprietário com GUIDs internos. Modificar/criar via texto sem rodar Unity Editor é frágil. Construir tudo via código bypassa essa fragilidade — a cena pode ficar vazia, o bootstrap monta tudo.
+
+**Por que `Resources.GetBuiltinResource<Font>` em vez de TextMeshPro?**
+TMP precisa importar "TMP Essentials" 1x no Editor. Pra eliminar essa etapa manual do setup, usei a fonte built-in da Unity. Visual menos polido, zero setup. Pode trocar pra TMP em v0.5.
