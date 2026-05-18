@@ -101,12 +101,12 @@ func _build() -> void:
 
 	_sell_btn = _action_button("VENDER", Color(0.24, 0.64, 0.30))
 	_sell_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_sell_btn.pressed.connect(func(): if _selected_id >= 0: Game.sell_at(_selected_id))
+	_sell_btn.pressed.connect(_on_sell_pressed)
 	row_tile.add_child(_sell_btn)
 
 	_attack_btn = _action_button("INVADIR", Color(0.82, 0.23, 0.17))
 	_attack_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_attack_btn.pressed.connect(func(): if _selected_id >= 0: Game.attack(_selected_id))
+	_attack_btn.pressed.connect(_on_attack_pressed)
 	row_tile.add_child(_attack_btn)
 
 	# ===== AÇÕES GERAIS =====
@@ -315,6 +315,16 @@ func _on_tile_pressed(idx: int) -> void:
 	print("[GAME] tile pressionado: ", idx)
 	_selected_id = idx
 	_refresh()
+
+
+func _on_sell_pressed() -> void:
+	if _selected_id >= 0:
+		Game.sell_at(_selected_id)
+
+
+func _on_attack_pressed() -> void:
+	if _selected_id >= 0:
+		Game.attack(_selected_id)
 
 
 func _on_save() -> void:
